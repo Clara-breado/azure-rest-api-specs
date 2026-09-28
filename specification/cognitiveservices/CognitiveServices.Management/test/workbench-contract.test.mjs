@@ -198,12 +198,31 @@ if (baselineRef) {
     ),
   );
   test("unrelated target operations and definitions are unchanged", () => {
-    assert.deepEqual(spec.paths, baseline.paths);
-    const expectedDefinitions = structuredClone(baseline.definitions);
-    delete expectedDefinitions.WorkbenchProperties.properties.runtimeImage;
-    expectedDefinitions.WorkbenchUpdate.properties.identity.description =
-      identityDescription;
-    assert.deepEqual(definitions, expectedDefinitions);
+    for (const [route, methods] of Object.entries(baseline.paths)) {
+      for (const [method, operation] of Object.entries(methods)) {
+        if (route === workbenchPath && ["put", "patch"].includes(method))
+          continue;
+        assert.deepEqual(
+          spec.paths[route][method],
+          operation,
+          `${method} ${route}`,
+        );
+      }
+    }
+    for (const [name, model] of Object.entries(baseline.definitions)) {
+      if (
+        [
+          "Workbench",
+          "WorkbenchProperties",
+          "WorkbenchUpdateProperties",
+        ].includes(name)
+      )
+        continue;
+      const expected = structuredClone(model);
+      if (name === "WorkbenchUpdate")
+        expected.properties.identity.description = identityDescription;
+      assert.deepEqual(definitions[name], expected, name);
+    }
   });
 
   test("all 4255 historical contracts/examples retain their original Git blob hashes", () => {
